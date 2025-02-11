@@ -3,23 +3,23 @@ import traceback
 
 
 def get_input_values():
-
+    # Gets two float numbers from user input, returns (None, None) if invalid
     try:
-        return float(input("Введіть a: ")), float(input("Введіть b: "))
+        return float(input("Enter  a: ")), float(input("Enter  b: "))
     except ValueError:
-        print("Невірне числове значення!")
+        print("Incorrect numerical value!")
         return None, None
 
 def main():
-
+    # Handles user interaction flow and calculation execution
     try:
-        variant = int(input(f"Виберіть варіант обчислення (1-{len(CALCULATIONS)}): "))
+        variant = int(input(f"Select a calculation variant (1-{len(CALCULATIONS)}): "))
         if variant not in CALCULATIONS:
-            print("Невірний варіант!")
+            print("Incorrect variant!")
             return
 
         calc = CALCULATIONS[variant]
-        print(f"Формула: {calc['formula']}")
+        print(f"Formula: {calc['formula']}")
 
         a, b = get_input_values()
         if a is None or b is None:
@@ -27,15 +27,16 @@ def main():
 
         try:
             result = calc['func'](a, b)
-            print(f"Результат: {result}")
+            print(f"Result: {result}")
         except ZeroDivisionError:
-            print("Помилка: ділення на нуль!")
+            print("Error: division by zero!")
         except Exception as e:
-            print(f"Сталася помилка: {e}")
+            print(f"An error has occurred: {e}")
             traceback.print_exc()
 
     except ValueError:
-        print("Невірне значення для варіанту!")
+        print("Invalid value for a variant!")
 
 if __name__ == '__main__':
     main()
+
