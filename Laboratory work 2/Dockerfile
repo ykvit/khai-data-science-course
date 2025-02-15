@@ -8,4 +8,4 @@ WORKDIR /app
 COPY . .
 
 # Command to start the project
-CMD ["python", "main.py"]
+CMD ["sh", "-c", "python main.py && tail -f /dev/null"]
