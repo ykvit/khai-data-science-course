@@ -1,4 +1,4 @@
 
 $ docker build -t labwork2 .
 
-$ docker run --rm labwork2
+$ docker run --rm -v "$(pwd)/output:/app/output" labwork2
