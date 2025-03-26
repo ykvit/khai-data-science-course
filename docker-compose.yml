@@ -1,0 +1,33 @@
+services:
+  lab1:
+    build:
+      context: ./lab1
+    container_name: lab1
+    working_dir: /app
+    volumes:
+      - ./lab1:/app
+    stdin_open: true       # Keeps the terminal interactive
+    tty: true              # Prevents the container from closing
+    command: python main.py
+
+  lab2:
+    build:
+      context: ./lab2
+    container_name: lab2
+    working_dir: /app
+    volumes:
+      - ./lab2:/app               # Maps entire lab2 folder
+      - ./lab2/data:/app/data     # Maps data input
+      - ./lab2/output:/app/output # Maps output folder
+    command: python main.py
+
+  lab3:
+    build:
+      context: ./lab3
+    container_name: lab3
+    working_dir: /app
+    volumes:
+      - ./lab3:/app               # Maps entire lab3 folder
+      - ./lab3/data:/app/data     # Maps data input
+      - ./lab3/output:/app/output # Maps output folder
+    command: python main.py
