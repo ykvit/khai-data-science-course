@@ -1,4 +1,4 @@
-from analyzer import StudentPerformanceAnalyzer
+from src.analyzer import StudentPerformanceAnalyzer
 
 def main():
     """Main function to run the student performance analysis."""

@@ -1,0 +1,33 @@
+# Git stuff
+.git
+.gitignore
+
+# Docker stuff itself (don't copy into image)
+docker/
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Python cache and virtual environments
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+
+# IDE / Editor specific files
+.vscode/
+.idea/
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Other logs/temp files if any
+*.log
+
+# Output stuff
+output/

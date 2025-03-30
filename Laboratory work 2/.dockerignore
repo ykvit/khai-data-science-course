@@ -1,6 +1,0 @@
-__pycache__
-*.pyc
-.git
-.vscode
-output
-output/processed_data.json
