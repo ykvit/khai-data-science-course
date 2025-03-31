@@ -2,5 +2,8 @@ numpy
 pandas
 openpyxl
 
+matplotlib
+reportlab
+
 pytest
 pytest-mock

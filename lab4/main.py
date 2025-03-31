@@ -1,81 +1,101 @@
-# main.py
 import logging
+from pathlib import Path
+
 from src.config import AppConfig
 from src.analysis import DataAnalyzer
-from src.data_loader import DataLoaderError # Import from data_loader.py
-from src.report_saver import ReportSaverError # Import from report_saver.py
+from src.cli import run_cli # Import the CLI runner function
+from src.data_loader import DataLoaderError
+from src.report_saver import ReportSaverError
 
-# --- Configuration ---
-# Setup logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - [%(levelname)s] - %(module)s - %(message)s')
 
-# --- Main Execution ---
+log_format = '%(asctime)s - [%(levelname)s] - %(module)s:%(lineno)d - %(message)s'
+date_format = '%Y-%m-%d %H:%M:%S'
+
+logging.basicConfig(level=logging.INFO, format=log_format, datefmt=date_format)
+
+try:
+    log_dir = Path("output")
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_file_path = log_dir / "student_analysis.log"
+
+    # Create a file handler that logs even DEBUG messages
+    file_handler = logging.FileHandler(log_file_path, mode='a', encoding='utf-8') # 'a' for append mode
+    file_handler.setFormatter(logging.Formatter(log_format, datefmt=date_format))
+    file_handler.setLevel(logging.DEBUG) # Log more detailed info to the file
+
+    # Add the file handler to the root logger
+    logging.getLogger().addHandler(file_handler)
+    logging.info(f"File logging initialized. Logs will be saved to: {log_file_path}")
+except Exception as log_setup_err:
+    logging.error(f"Failed to configure file logging: {log_setup_err}", exc_info=True)
+
+
 def main():
-    """Main function to run the student performance analysis."""
+    """
+    Main function to initialize the data analyzer, process data,
+    and run the command-line interface (CLI).
+    """
+    # Log the start of the application run
+    separator = "=" * 40
+    logging.info(separator)
     logging.info("Starting Student Performance Analysis Application")
-    
+    logging.info(separator)
+
+    analyzer = None 
+
     try:
-        # 1. Initialize Configuration (Can be loaded from file/env vars later)
-        config = AppConfig() 
-        # !!! ВАЖЛИВО: Переконайся, що AppConfig має правильні назви колонок 
-        #            та `target_group` встановлено для твоєї групи !!!
-        logging.info(f"Configuration loaded: Input='{config.input_file}', Output='{config.output_file}', Target Group='{config.target_group}'")
+        config = AppConfig()
+        # Log key configuration details (avoid logging sensitive data if applicable)
+        logging.info(f"Configuration loaded: Input='{config.input_file}', Output Dir='output', Target Group='{config.target_group}'")
 
-        # 2. Initialize Analyzer
+        Path("output").mkdir(parents=True, exist_ok=True)
+        logging.debug("Output directory checked/created.")
+
         analyzer = DataAnalyzer(config)
-        
-        # 3. Process Data
-        analyzer.process_data() # This orchestrates load, clean, calculate, scholarhips
-        
-        # 4. Get Overall Statistics (Optional, but good for overview)
-        overall_stats = analyzer.get_overall_stats()
-        logging.info("\n--- Overall Statistics ---")
-        logging.info(f"Total students processed: {overall_stats.get('total_students')}")
-        logging.info(f"Highest GPA student (overall): {overall_stats.get('highest_gpa_student')}")
-        logging.info(f"Lowest GPA student (overall): {overall_stats.get('lowest_gpa_student')}")
-        logging.info(f"Total scholarship recipients: {overall_stats.get('scholarship_recipients_count')}")
-        logging.info(f"Average GPA (overall): {overall_stats.get('average_gpa_overall', 'N/A'):.2f}")
+        logging.info("DataAnalyzer initialized successfully.")
 
+        print("Processing student data... Please wait.") # Provide feedback to the user
+        logging.info("Starting data processing pipeline...")
+        analyzer.process_data() # Orchestrates the core data handling steps
+        print("Data processing complete.") # Inform user upon completion
+        logging.info("Data processing pipeline finished successfully.")
 
-        # 5. Get Statistics for the Target Group (as required by LW3 task)
-        logging.info(f"\n--- Statistics for Target Group: {config.target_group} ---")
+    except (DataLoaderError, KeyError, ValueError, RuntimeError, FileNotFoundError) as setup_err:
+         logging.error(f"A critical error occurred during setup or data processing: {setup_err}", exc_info=True)
+         print(f"\nCRITICAL ERROR: {setup_err}")
+         print("The application cannot continue. Please check the log file ('output/student_analysis.log') for details.")
+         return # Exit the application gracefully
+
+    # Catch any other unexpected exceptions during setup
+    except Exception as unexpected_setup_err:
+        logging.critical(f"An unexpected critical error occurred during setup: {unexpected_setup_err}", exc_info=True)
+        print(f"\nCRITICAL UNEXPECTED ERROR: {unexpected_setup_err}")
+        print("The application cannot continue. Please check the log file ('output/student_analysis.log') for details.")
+        return # Exit the application gracefully
+
+    if analyzer and analyzer._is_processed:
+        logging.info("Starting Command Line Interface (CLI)...")
         try:
-             group_stats = analyzer.get_group_stats() # Uses config.target_group by default
-             logging.info(f"Number of students in group: {group_stats.get('students_in_group')}")
-             logging.info(f"Highest GPA student in group: {group_stats.get('highest_gpa_student_in_group')}")
-             logging.info(f"Lowest GPA student in group: {group_stats.get('lowest_gpa_student_in_group')}")
-             logging.info(f"Number of scholarship recipients in group: {group_stats.get('scholarship_recipients_in_group')}")
-             logging.info(f"Average GPA in group: {group_stats.get('average_gpa_in_group', 'N/A'):.2f}")
-             
-             # --- Вивід для звіту з лабораторної роботи ---
-             print("\n--- Результати для звіту (Група: {config.target_group}) ---")
-             print(f"ПІБ студента з найвищим балом: {group_stats.get('highest_gpa_student_in_group', 'Не знайдено')}")
-             print(f"ПІБ студента з найнижчим балом: {group_stats.get('lowest_gpa_student_in_group', 'Не знайдено')}")
-             print(f"Кількість студентів, що отримують стипендію: {group_stats.get('scholarship_recipients_in_group', 0)}")
-             
-        except ValueError as e:
-             logging.error(f"Could not get stats for group '{config.target_group}': {e}")
-             print(f"\nПомилка: Не вдалося отримати статистику для групи '{config.target_group}'. Перевірте наявність групи у файлі.")
+            # Pass the ready analyzer instance to the CLI function
+            run_cli(analyzer)
+            logging.info("CLI finished normally.")
+        except KeyboardInterrupt:
+            print("\nExiting application due to user interruption (Ctrl+C).")
+            logging.warning("CLI terminated by user (KeyboardInterrupt).")
+        except Exception as cli_err:
+            # Catch unexpected errors specifically occurring within the CLI loop
+            logging.critical(f"An unexpected error occurred within the CLI: {cli_err}", exc_info=True)
+            print(f"\nA critical error occurred while running the interface: {cli_err}")
+            print("Exiting application. Please check the log file ('output/student_analysis.log') for details.")
+    else:
+         # This case should ideally be prevented by the error handling above,
+         # but serves as a final safety check.
+         logging.error("Analyzer was not ready or data processing failed. CLI cannot start.")
+         print("Failed to initialize or process data correctly. The command-line interface cannot be started.")
 
-
-        # 6. Save Processed Data
-        analyzer.save_processed_data()
-        
-        logging.info("\nAnalysis finished successfully.")
-        
-    # Catch specific errors from our components first
-    except (DataLoaderError, ReportSaverError, KeyError, ValueError, RuntimeError) as e:
-         logging.error(f"An application error occurred: {e}", exc_info=True) # Log traceback for debug
-         print(f"\nПомилка виконання: {e}")
-         print("Будь ласка, перевірте конфігурацію (src/config.py), вхідний файл та права доступу.")
-    except FileNotFoundError as e:
-         logging.error(f"A required file was not found: {e}", exc_info=True)
-         print(f"\nПомилка: Не знайдено файл '{e.filename}'. Перевірте шлях у конфігурації.")
-    except Exception as e:
-        # Catch-all for unexpected errors
-        logging.critical(f"An unexpected critical error occurred: {e}", exc_info=True)
-        print(f"\nКритична непередбачена помилка: {e}")
-        print("Роботу програми буде перервано.")
+    logging.info(separator)
+    logging.info("Application finished.")
+    logging.info(separator)
 
 if __name__ == "__main__":
     main()
