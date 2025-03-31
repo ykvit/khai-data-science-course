@@ -68,6 +68,28 @@ Lab 3 Processing and analyzing student performance data using Pandas.
 
 ---
 
+### 🚩 Run Lab 4
+
+Lab 4 Upgrading of the programme for processing and analysing student performance data with an enhanced console interface, graphical display and report generation.
+
+
+**Build the Docker image:**
+
+```bash
+   cd lab4
+   docker build -t lab4 .
+   docker run --rm -v "$(pwd)/output:/app/output" lab4
+```
+
+**Docker compose:**
+
+```bash
+    docker-compose build lab4
+    docker-compose run lab4
+```
+
+---
+
 ### Cleanup
 
 ```bash
