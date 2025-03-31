@@ -1,4 +1,3 @@
-# tests/test_grade_calculator.py
 import pytest
 import pandas as pd
 import numpy as np
@@ -8,7 +7,6 @@ from src.grade_calculator import GradeCalculator
 
 @pytest.fixture
 def test_config():
-    # Конфігурація для тестів калькулятора оцінок
     return AppConfig(
         subject_score_columns=['Score'],
         min_score=60,
@@ -18,7 +16,7 @@ def test_config():
             (75, 89): "Добре",
             (60, 74): "Задовільно"
         },
-        national_scale_suffix='_Grade' # Спрощений суфікс для тесту
+        national_scale_suffix='_Grade' 
     )
 
 @pytest.fixture
@@ -26,8 +24,6 @@ def scores_dataframe():
     return pd.DataFrame({
         'Score': [95, 100, 89, 75, 74, 60, 59, 101, np.nan]
     })
-
-# --- Тести ---
 
 def test_calculate_national_scale_grades(test_config, scores_dataframe):
     """Перевіряє правильність призначення національних оцінок."""
@@ -45,8 +41,6 @@ def test_calculate_national_scale_grades(test_config, scores_dataframe):
         np.nan         # np.nan -> np.nan
     ]
     
-    # Порівняння може бути чутливим до типів (category vs object), тому перетворюємо на список
-    # Також обробляємо NaN окремо, оскільки np.nan != np.nan
     actual_grades = graded_df['Score_Grade'].tolist()
 
     assert len(actual_grades) == len(expected_grades)
