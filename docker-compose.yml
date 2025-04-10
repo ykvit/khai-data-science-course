@@ -31,3 +31,16 @@ services:
       - ./lab3/data:/app/data     # Maps data input
       - ./lab3/output:/app/output # Maps output folder
     command: python main.py
+
+  lab4:
+    build:
+      context: ./lab4
+    container_name: lab4
+    working_dir: /app
+    volumes:
+      - ./lab4:/app               # Maps entire lab4 folder
+      - ./lab4/data:/app/data     # Maps data input
+      - ./lab4/output:/app/output # Maps output folder
+    stdin_open: true  # Keep STDIN open for interactive input (input())
+    tty: true         # Allocate a pseudo-TTY for interactive session
+    command: python main.py
