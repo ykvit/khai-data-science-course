@@ -19,7 +19,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Build Lab 5 Docker image
-      uses: docker compose run --rm lab5
+      run: docker compose run --rm lab5
       
 
     - name: Set up Docker Compose
