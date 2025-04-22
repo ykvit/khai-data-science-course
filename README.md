@@ -90,6 +90,27 @@ Lab 4 Upgrading of the programme for processing and analysing student performanc
 
 ---
 
+### 🚩 Run Lab 5
+
+Lab 4 Development of a graphical interface for a programme for processing and analysing student performance data.
+
+
+**Build the Docker image:**
+
+```bash
+   cd lab5
+   docker build -t lab5 .
+   docker run --rm -v "$(pwd)/output:/app/output" lab5
+```
+
+**Docker compose:**
+
+```bash
+    docker-compose build lab5
+    docker-compose run lab5
+```
+---
+
 ### Cleanup
 
 ```bash
