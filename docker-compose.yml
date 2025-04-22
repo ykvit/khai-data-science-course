@@ -44,3 +44,16 @@ services:
     stdin_open: true
     tty: true
     command: python main.py
+
+  lab5:
+    build:
+      context: ./lab5
+    container_name: lab5
+    working_dir: /app
+    volumes:
+      - ./lab5:/app  
+      - ./lab5/data:/app/data 
+      - ./lab5/output:/app/output
+    stdin_open: true
+    tty: true
+    command: python main.py
