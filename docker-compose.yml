@@ -50,10 +50,11 @@ services:
       context: ./lab5
     container_name: lab5
     working_dir: /app
+    environment: 
+      - DISPLAY=$DISPLAY
     volumes:
-      - ./lab5:/app  
+      - ./lab5:/app
       - ./lab5/data:/app/data 
-      - ./lab5/output:/app/output
-    stdin_open: true
-    tty: true
+      - ./lab5/output:/app/output 
+      - /tmp/.X11-unix:/tmp/.X11-unix 
     command: python main.py

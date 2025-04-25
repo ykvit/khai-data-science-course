@@ -1,54 +1,72 @@
-from dataclasses import dataclass, field
-from typing import List, Dict, Tuple
+import pandas as pd
+from pathlib import Path
+import logging
 
-@dataclass
 class AppConfig:
-    """Holds configuration settings for the student analysis application."""
-    
-    # --- File Paths ---
-    input_file: str = 'data/LW3.xlsx'
-    output_file: str = 'output/LW3_processed.xlsx'
-    sheet_name: str | int = 0  # Default to the first sheet
+    """Holds application configuration settings."""
 
-    # --- Column Names (CRITICAL - Adjust based on actual Excel file) ---
-    name_column: str = 'Студент (2020)' # Example, adjust!
-    group_column: str = 'Група'         # Example, adjust!
-    # Automatically find subject columns ending with '(бали)' or similar?
-    # Or list them explicitly if names are fixed? Let's try explicit first.
-    # If subject columns can change, we'll need a discovery mechanism.
-    subject_score_columns: List[str] = field(default_factory=lambda: [
-        'Дискретна математика (бали)',
-        'Вища математика (бали)',
-        'Англійська мова (Бали)', # Note potential inconsistency 'Бали' vs 'бали'
-        'Вибіркова дисципліна 1 (бали)',
-        'Вибіркова дисципліна 2 (бали)'
-    ])
+    def __init__(self):
+        """Initializes configuration settings."""
+        logging.debug("Initializing AppConfig...")
 
-    # --- Calculation Parameters ---
-    min_score: int = 60
-    max_score: int = 100
-    scholarship_percentage: float = 0.60
-    
-    # National grade scale mapping (score range -> grade name)
-    grade_scales: Dict[Tuple[int, int], str] = field(default_factory=lambda: {
-        (90, 100): "Відмінно",
-        (75, 89): "Добре",
-        (60, 74): "Задовільно" 
-        # Add lower bound if needed, e.g., (0, 59): "Незадовільно" if relevant
-    })
-    
-    # --- Derived Column Names ---
-    gpa_column: str = 'Середній бал (GPA)'
-    scholarship_column: str = 'Стипендія'
-    scholarship_marker: str = '*'
-    national_scale_suffix: str = ' (нац шкала)' # Suffix for new grade columns
+        project_root = Path(__file__).parent.parent
+        self.input_file = project_root / "data" / "LW3.xlsx"
+        logging.debug(f"Input file path constructed as: {self.input_file.resolve()}")
 
-    # --- Group Specific Analysis ---
-    target_group: str = "536ст" # <<< ЗАМІНИ НА НОМЕР СВОЄЇ ГРУПИ! 
-                               # Можна передавати через аргумент командного рядка пізніше
+        if not self.input_file.exists():
+             logging.error(f"CRITICAL: Input file not found at resolved path: {self.input_file.resolve()}")
+             raise FileNotFoundError(f"Input file not found: {self.input_file}")
+        else:
+             logging.info(f"Input file found at: {self.input_file.resolve()}")
 
-    def get_national_scale_column_name(self, score_column: str) -> str:
-        """Generates the name for the national scale column based on the score column."""
-        # Remove "(бали)" or similar suffix before adding the new one
-        base_name = score_column.replace('(бали)', '').replace('(Бали)', '').strip()
+        self.sheet_name = 0
+        logging.info(f"Configured to read the first sheet (sheet_name=0)")
+
+        self.output_dir = project_root / "output"
+        self.output_file = self.output_dir / "processed_students.xlsx"
+        logging.debug(f"Output directory set to: {self.output_dir.resolve()}")
+
+        self.name_column = "Студент (2020)"
+        self.group_column = "Група"
+        self.subject_score_columns = [
+            'Дискретна математика (бали)',
+            'Вища математика (бали)',
+            'Англійська мова (Бали)',
+            'Вибіркова дисципліна 1 (бали)',
+            'Вибіркова дисципліна 2 (бали)'
+        ]
+
+        if not self.subject_score_columns:
+            logging.warning("Subject score columns list is empty in config.")
+
+        self.national_scale_suffix = " (Нац. шкала)"
+        self.gpa_column = "GPA"
+        self.scholarship_column = "Стипендія"
+
+        # --- Score & Grade Settings ---
+        self.min_score = 0
+        self.max_score = 100
+        self.grade_scales = {
+            (59, 74): "Задовільно",
+            (74, 89): "Добре",
+            (89, 100): "Відмінно",
+            (-1, 59): "Незадовільно"
+        }
+
+        # --- Scholarship Settings ---
+        self.scholarship_percentage = 0.60
+        self.scholarship_marker = "Рекомендовано"
+
+        # --- Target group ---
+        self.target_group = "536ст"
+        logging.debug("AppConfig initialized successfully.")
+
+
+    # ... решта методів класу ...
+    def get_national_scale_column_name(self, score_column_name: str) -> str:
+        import re
+        base_name = re.sub(r'\s*\((?:бали|Бали)\)\s*', '', score_column_name, flags=re.IGNORECASE).strip()
         return f"{base_name}{self.national_scale_suffix}"
+
+    def get_all_national_scale_columns(self) -> list[str]:
+         return [self.get_national_scale_column_name(col) for col in self.subject_score_columns]

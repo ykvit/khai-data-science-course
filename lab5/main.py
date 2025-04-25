@@ -1,101 +1,108 @@
 import logging
+import pandas as pd
+import matplotlib.pyplot as plt 
+import sys 
+import tkinter as tk 
+from typing import Optional
 from pathlib import Path
+from matplotlib.figure import Figure
+from tkinter import messagebox
 
-from src.config import AppConfig
-from src.analysis import DataAnalyzer
-from src.cli import run_cli # Import the CLI runner function
-from src.data_loader import DataLoaderError
-from src.report_saver import ReportSaverError
-
-
-log_format = '%(asctime)s - [%(levelname)s] - %(module)s:%(lineno)d - %(message)s'
+# --- Налаштування логування (важливо зробити це ДО імпорту інших модулів src) ---
+log_format = '%(asctime)s - [%(levelname)s] - %(name)s:%(lineno)d - %(message)s'
 date_format = '%Y-%m-%d %H:%M:%S'
 
-logging.basicConfig(level=logging.INFO, format=log_format, datefmt=date_format)
+logging.basicConfig(level=logging.INFO, format=log_format, datefmt=date_format, stream=sys.stdout)
+
+log_file_path = None 
 
 try:
-    log_dir = Path("output")
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+        base_path = Path(sys._MEIPASS) # type: ignore
+        log_dir_base = Path.cwd() 
+    else:
+        base_path = Path(__file__).parent
+        log_dir_base = base_path 
+
+    log_dir = log_dir_base / "output" 
     log_dir.mkdir(parents=True, exist_ok=True)
-    log_file_path = log_dir / "student_analysis.log"
+    log_file_path = log_dir / "student_analysis_gui.log"
 
-    # Create a file handler that logs even DEBUG messages
-    file_handler = logging.FileHandler(log_file_path, mode='a', encoding='utf-8') # 'a' for append mode
+
+    file_handler = logging.FileHandler(log_file_path, mode='a', encoding='utf-8')
     file_handler.setFormatter(logging.Formatter(log_format, datefmt=date_format))
-    file_handler.setLevel(logging.DEBUG) # Log more detailed info to the file
+    file_handler.setLevel(logging.DEBUG) 
 
-    # Add the file handler to the root logger
     logging.getLogger().addHandler(file_handler)
-    logging.info(f"File logging initialized. Logs will be saved to: {log_file_path}")
+    # logging.getLogger().removeHandler(logging.getLogger().handlers[0])
+
+    logging.info(f"File logging initialized. Base path: {base_path}. Log file: {log_file_path}")
+
 except Exception as log_setup_err:
     logging.error(f"Failed to configure file logging: {log_setup_err}", exc_info=True)
+    print(f"[ERROR] Failed to configure file logging to '{log_file_path}': {log_setup_err}", file=sys.stderr)
+
+
+# --- Import and start GUI ---
+try:
+    src_path = Path(__file__).parent / 'src'
+    if src_path.is_dir() and str(src_path.parent) not in sys.path:
+         project_root = str(src_path.parent)
+         if project_root not in sys.path:
+              sys.path.insert(0, project_root)
+              logging.info(f"Added project root to sys.path: {project_root}")
+
+    from src.gui import run_gui 
+    logging.info("GUI module imported successfully.")
+
+except ImportError as import_err:
+     logging.critical(f"Failed to import GUI module or its dependencies: {import_err}", exc_info=True)
+     try:
+         root_err = tk.Tk()
+         root_err.withdraw()
+         messagebox.showerror("Помилка Імпорту", f"Не вдалося завантажити компоненти додатку:\n{import_err}\n\nПеревірте цілісність програми та встановлені бібліотеки.\nДодаток не може продовжити роботу.")
+         root_err.destroy()
+     except Exception:
+          print(f"[CRITICAL] Failed to import required application components: {import_err}", file=sys.stderr)
+          print("Please ensure all dependencies are installed and the application structure is correct.", file=sys.stderr)
+     sys.exit(1) 
 
 
 def main():
     """
-    Main function to initialize the data analyzer, process data,
-    and run the command-line interface (CLI).
+    Main gui
     """
-    # Log the start of the application run
     separator = "=" * 40
     logging.info(separator)
-    logging.info("Starting Student Performance Analysis Application")
+    logging.info("Starting Student Performance Analysis GUI Application")
     logging.info(separator)
 
-    analyzer = None 
-
     try:
-        config = AppConfig()
-        # Log key configuration details (avoid logging sensitive data if applicable)
-        logging.info(f"Configuration loaded: Input='{config.input_file}', Output Dir='output', Target Group='{config.target_group}'")
+        run_gui()
+        logging.info("GUI main loop finished normally.")
 
-        Path("output").mkdir(parents=True, exist_ok=True)
-        logging.debug("Output directory checked/created.")
-
-        analyzer = DataAnalyzer(config)
-        logging.info("DataAnalyzer initialized successfully.")
-
-        print("Processing student data... Please wait.") # Provide feedback to the user
-        logging.info("Starting data processing pipeline...")
-        analyzer.process_data() # Orchestrates the core data handling steps
-        print("Data processing complete.") # Inform user upon completion
-        logging.info("Data processing pipeline finished successfully.")
-
-    except (DataLoaderError, KeyError, ValueError, RuntimeError, FileNotFoundError) as setup_err:
-         logging.error(f"A critical error occurred during setup or data processing: {setup_err}", exc_info=True)
-         print(f"\nCRITICAL ERROR: {setup_err}")
-         print("The application cannot continue. Please check the log file ('output/student_analysis.log') for details.")
-         return # Exit the application gracefully
-
-    # Catch any other unexpected exceptions during setup
-    except Exception as unexpected_setup_err:
-        logging.critical(f"An unexpected critical error occurred during setup: {unexpected_setup_err}", exc_info=True)
-        print(f"\nCRITICAL UNEXPECTED ERROR: {unexpected_setup_err}")
-        print("The application cannot continue. Please check the log file ('output/student_analysis.log') for details.")
-        return # Exit the application gracefully
-
-    if analyzer and analyzer._is_processed:
-        logging.info("Starting Command Line Interface (CLI)...")
-        try:
-            # Pass the ready analyzer instance to the CLI function
-            run_cli(analyzer)
-            logging.info("CLI finished normally.")
-        except KeyboardInterrupt:
-            print("\nExiting application due to user interruption (Ctrl+C).")
-            logging.warning("CLI terminated by user (KeyboardInterrupt).")
-        except Exception as cli_err:
-            # Catch unexpected errors specifically occurring within the CLI loop
-            logging.critical(f"An unexpected error occurred within the CLI: {cli_err}", exc_info=True)
-            print(f"\nA critical error occurred while running the interface: {cli_err}")
-            print("Exiting application. Please check the log file ('output/student_analysis.log') for details.")
-    else:
-         # This case should ideally be prevented by the error handling above,
-         # but serves as a final safety check.
-         logging.error("Analyzer was not ready or data processing failed. CLI cannot start.")
-         print("Failed to initialize or process data correctly. The command-line interface cannot be started.")
+    except Exception as gui_err:
+         logging.critical(f"An unexpected critical error occurred in the GUI main loop: {gui_err}", exc_info=True)
+         try:
+             root_crit = tk.Tk()
+             root_crit.withdraw()
+             error_msg = f"Виникла неочікувана критична помилка:\n{gui_err}\n\n"
+             if log_file_path:
+                  error_msg += f"Будь ласка, перевірте лог-файл для деталей:\n{log_file_path}"
+             else:
+                  error_msg += "Файлове логування не було налаштовано. Перевірте консоль."
+             messagebox.showerror("Критична Помилка Додатку", error_msg)
+             root_crit.destroy()
+         except Exception as tk_err:
+              print(f"[CRITICAL] An unexpected error occurred in the GUI: {gui_err}", file=sys.stderr)
+              print(f"[ERROR] Could not display error message box: {tk_err}", file=sys.stderr)
+              if log_file_path:
+                   print(f"Please check the log file for details: {log_file_path}", file=sys.stderr)
 
     logging.info(separator)
     logging.info("Application finished.")
     logging.info(separator)
+
 
 if __name__ == "__main__":
     main()

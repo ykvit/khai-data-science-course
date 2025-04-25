@@ -21,8 +21,6 @@ class GradeCalculator:
         df_graded = df.copy()
         logging.info("Calculating national scale grades...")
 
-        # Prepare bins and labels from config
-        # Sort ranges to ensure correct binning
         sorted_scales = sorted(config.grade_scales.items(), key=lambda item: item[0][0]) 
         bins = [config.min_score - 1] + [upper for (lower, upper), grade in sorted_scales]
         labels = [grade for (lower, upper), grade in sorted_scales]
@@ -46,11 +44,11 @@ class GradeCalculator:
                     df_graded[score_col],
                     bins=bins,
                     labels=labels,
-                    right=True,       # Intervals are closed on the right (e.g., (74, 89] -> Добре)
+                    right=True, 
                     include_lowest=False # Change if min_score itself needs a specific grade
                 )
-                 # Handle potential NaNs in score column - they should remain NaN in grade column
-                df_graded[national_scale_col] = df_graded[national_scale_col].astype('object') # To allow NaN storage if needed
+
+                df_graded[national_scale_col] = df_graded[national_scale_col].astype('object') # 
                 df_graded.loc[df_graded[score_col].isnull(), national_scale_col] = np.nan
 
             else:

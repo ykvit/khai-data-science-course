@@ -1,7 +1,7 @@
 import pandas as pd
 from pathlib import Path
 from .config import AppConfig
-import logging # Use logging instead of print for better control
+import logging
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -44,7 +44,6 @@ class DataLoader:
                  logging.error(f"Missing required columns in the input file: {missing_cols}")
                  raise KeyError(f"Missing required columns: {missing_cols}. Please check config.py or the input file '{config.input_file}'.")
             
-            # Check if score columns are numeric (or can be converted)
             for col in config.subject_score_columns:
                  # Attempt conversion, coerce errors to NaN
                  df[col] = pd.to_numeric(df[col], errors='coerce')

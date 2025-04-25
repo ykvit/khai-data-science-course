@@ -68,32 +68,35 @@ def _find_students_by_score_threshold(group_df: pd.DataFrame, config: AppConfig,
 
 
 # --- The main function of PDF generation ---
+
 def generate_group_report_pdf(
-    group_df: pd.DataFrame, 
-    group_stats: Dict[str, Any], 
-    group_id: str, 
-    config: AppConfig, 
-    output_dir: Path
-) -> Optional[str]:
+    group_df: pd.DataFrame,
+    group_stats: Dict[str, Any],
+    group_id: str,
+    config: AppConfig,
+    output_filepath: str
+) -> bool:
     """
-    Generates a PDF report for a specific student group, ensuring Cyrillic support.
+    Generates a PDF report for a specific student group to the specified file path.
 
     Args:
         group_df: DataFrame filtered for the specific group.
         group_stats: Dictionary containing pre-calculated stats for the group.
         group_id: The ID of the group.
         config: Application configuration.
-        output_dir: Directory to save the PDF report.
+        output_filepath: The full path (including filename) to save the PDF report.
 
     Returns:
-        The path to the saved PDF file, or None if generation failed.
+        True if PDF generation was successful, False otherwise.
     """
-    logging.info(f"Generating PDF report for group: {group_id} using font '{FONT_NAME}'")
-    output_dir.mkdir(parents=True, exist_ok=True)
-    output_filename = output_dir / f"group_{group_id}_report.pdf"
-    
-    doc = SimpleDocTemplate(str(output_filename))
-    story = [] 
+    logging.info(f"Generating PDF report for group: {group_id} to '{output_filepath}' using font '{FONT_NAME}'")
+
+    if not output_filepath:
+        logging.error("Output file path is empty. Cannot generate PDF.")
+        return False
+
+    doc = SimpleDocTemplate(output_filepath)
+    story = []
 
     try:
         # --- Title ---
@@ -102,6 +105,7 @@ def generate_group_report_pdf(
 
         # --- Basic Group Statistics ---
         story.append(Paragraph("Загальна Інформація по Групі:", styles['H2']))
+        # ... (код для додавання статистики групи) ...
         story.append(Paragraph(f"Загальна кількість студентів: {group_stats.get('students_in_group', 'N/A')}", styles['LeftAligned']))
         story.append(Paragraph(f"Кількість стипендіатів: {group_stats.get('scholarship_recipients_in_group', 'N/A')}", styles['LeftAligned']))
         avg_gpa = group_stats.get('average_gpa_in_group')
@@ -109,6 +113,8 @@ def generate_group_report_pdf(
         story.append(Paragraph(f"Середній бал (GPA) по групі: {avg_gpa_str}", styles['LeftAligned']))
         story.append(Spacer(1, 0.2*inch))
 
+
+        # --- Subject Averages ---
         story.append(Paragraph("Середній Бал по Предметах:", styles['H2']))
         subject_averages = _calculate_group_subject_averages(group_df, config)
         if subject_averages:
@@ -116,52 +122,52 @@ def generate_group_report_pdf(
                 [Paragraph('Предмет', styles['TableHeader']), Paragraph('Середній Бал', styles['TableHeader'])]
             ]
             for subject, avg in subject_averages.items():
-                avg_data.append([
-                    Paragraph(subject, styles['TableCell']), 
-                    Paragraph(f"{avg:.2f}", styles['TableCell'])
-                ])
-            
-            table_avg = Table(avg_data, colWidths=[3.5*inch, 1.5*inch]) 
+                 avg_data.append([
+                     Paragraph(subject, styles['TableCell']),
+                     Paragraph(f"{avg:.2f}", styles['TableCell'])
+                 ])
+            table_avg = Table(avg_data, colWidths=[3.5*inch, 1.5*inch])
             table_avg.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.darkslategray), 
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
-                ('BACKGROUND', (0, 1), (-1, -1), colors.lightgrey), 
-                ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                ('LEFTPADDING', (0, 0), (-1, -1), 5),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 5)
+                 ('BACKGROUND', (0, 0), (-1, 0), colors.darkslategray),
+                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                 ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                 ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+                 ('BACKGROUND', (0, 1), (-1, -1), colors.lightgrey),
+                 ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                 ('LEFTPADDING', (0, 0), (-1, -1), 5),
+                 ('RIGHTPADDING', (0, 0), (-1, -1), 5)
             ]))
             story.append(table_avg)
         else:
-            story.append(Paragraph("Немає даних про середні бали.", styles['LeftAligned']))
+             story.append(Paragraph("Немає даних про середні бали.", styles['LeftAligned']))
         story.append(Spacer(1, 0.2*inch))
 
-        # --- Students with Scores Below 65 ---
+        # --- Low Performers ---
         story.append(Paragraph("Студенти з Оцінками Нижче 65 (з будь-якого предмету):", styles['H2']))
         low_performers = _find_students_by_score_threshold(group_df, config, 65, 'less')
         if low_performers:
-            low_performers_text = "<br/>".join([f"- {name}" for name in low_performers])
-            story.append(Paragraph(low_performers_text, styles['LeftAligned']))
+             low_performers_text = "<br/>".join([f"- {name}" for name in low_performers])
+             story.append(Paragraph(low_performers_text, styles['LeftAligned']))
         else:
-            story.append(Paragraph("Студентів з оцінками нижче 65 не знайдено.", styles['LeftAligned']))
+             story.append(Paragraph("Студентів з оцінками нижче 65 не знайдено.", styles['LeftAligned']))
         story.append(Spacer(1, 0.2*inch))
 
-        # --- Students with Scores Above 95 ---
+        # --- High Performers  ---
         story.append(Paragraph("Студенти з Оцінками Вище 95 (з будь-якого предмету):", styles['H2']))
         high_performers = _find_students_by_score_threshold(group_df, config, 95, 'greater')
         if high_performers:
-            high_performers_text = "<br/>".join([f"- {name}" for name in high_performers])
-            story.append(Paragraph(high_performers_text, styles['LeftAligned']))
+             high_performers_text = "<br/>".join([f"- {name}" for name in high_performers])
+             story.append(Paragraph(high_performers_text, styles['LeftAligned']))
         else:
-            story.append(Paragraph("Студентів з оцінками вище 95 не знайдено.", styles['LeftAligned']))
+             story.append(Paragraph("Студентів з оцінками вище 95 не знайдено.", styles['LeftAligned']))
+
 
         # --- Build the PDF ---
         doc.build(story)
-        logging.info(f"PDF report saved successfully to {output_filename}")
-        return str(output_filename)
+        logging.info(f"PDF report saved successfully to {output_filepath}")
+        return True
 
     except Exception as e:
-        logging.error(f"Failed to generate PDF report for group {group_id}: {e}", exc_info=True)
-        return None
+        logging.error(f"Failed to generate PDF report for group {group_id} to {output_filepath}: {e}", exc_info=True)
+        return False
