@@ -32,3 +32,17 @@ services:
       - ./lab3/output:/app/output # Maps output folder
     command: python main.py
 
+
+  lab6:
+    build:
+      context: ./lab6
+    container_name: lab6
+    working_dir: /app
+    environment:
+      - DISPLAY=$DISPLAY
+    env_file:
+      - ./lab6/.env
+    volumes:
+      - ./lab6:/app
+      - /tmp/.X11-unix:/tmp/.X11-unix
+    command: python main.py 
