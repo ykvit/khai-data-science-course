@@ -1,162 +1,149 @@
-# lab6/src/gui.py
-# -*- coding: utf-8 -*-
 """
-Модуль для графічного інтерфейсу користувача (GUI)
-для аналізу плагіату тексту за допомогою LLM.
+Module for the graphical user interface (GUI)
+for text plagiarism analysis using an LLM.
 """
 
 import tkinter as tk
 from tkinter import scrolledtext, filedialog, messagebox
 import os
 
-# from .utils import load_text_from_file
-# from .analysis import perform_analysis
-# from .config import get_api_key
-
-def load_text_from_file():
-    """Заглушка: Завантажує текст з файлу."""
-    file_path = filedialog.askopenfilename(
-        title="Вибрати текстовий файл",
-        filetypes=(("Text files", "*.txt"),
-                   ("Python files", "*.py"),
-                   ("Java files", "*.java"),
-                   ("All files", "*.*"))
-    )
-    if file_path:
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                return f.read()
-        except Exception as e:
-            messagebox.showerror("Помилка читання файлу", f"Не вдалося прочитати файл:\n{e}")
-            return None
-    return None
-
-def perform_analysis(text1, text2):
-    """Заглушка: Виконує аналіз плагіату."""
-    print("Виконується аналіз...")
-    print(f"Текст 1 (перші 50 символів): {text1[:50]}")
-    print(f"Текст 2 (перші 50 символів): {text2[:50]}")
-    # llm_integration.check_plagiarism
-
-    import time
-    time.sleep(1)
-    return "Результат аналізу:\nСхожість: 75%\n\nСхожі фрагменти:\n- Фрагмент А...\n- Фрагмент Б..."
-
-def get_api_key():
-    """Заглушка: Перевіряє наявність API ключа."""
-
-    print("Перевірка API ключа...")
-    key = os.getenv("GOOGLE_API_KEY") 
-    if not key:
-        print("API ключ не знайдено у змінних середовища.")
-        # messagebox.showwarning
-    return key
+from .utils import load_text_from_file, clear_text_area
+from .analysis import perform_analysis
+from .exceptions import LLMConnectionError, LLMResponseError, LLMError 
 
 
 class PlagiarismApp:
     """
-    Головний клас додатку для аналізу плагіату.
+    Main application class for the plagiarism analyzer.
     """
     def __init__(self, root):
         self.root = root
-        self.root.title("Аналізатор Плагіату на базі LLM")
-        self.root.minsize(600, 400)
+        self.root.title("Аналізатор Плагіату на базі LLM") # UI String
+        self.root.minsize(700, 500)
 
-        # if not get_api_key():
-        #    messagebox.showerror("Помилка конфігурації", "API Ключ Google не налаштовано!")
-            # Можна або вимкнути кнопку аналізу, або закрити додаток
-            # self.root.quit()
+        self.root.columnconfigure(0, weight=1)
+        self.root.rowconfigure(1, weight=1)
 
+        # --- Frames for layout ---
         top_frame = tk.Frame(self.root)
-        top_frame.pack(padx=10, pady=5, fill=tk.X)
+        top_frame.grid(row=0, column=0, padx=10, pady=(10, 5), sticky="ew")
+        top_frame.columnconfigure((0, 2), weight=1)
+        top_frame.columnconfigure((1, 3), weight=0)
 
         middle_frame = tk.Frame(self.root)
-        middle_frame.pack(padx=10, pady=5, fill=tk.BOTH, expand=True)
+        middle_frame.grid(row=1, column=0, padx=10, pady=5, sticky="nsew")
+        middle_frame.columnconfigure(0, weight=1)
+        middle_frame.columnconfigure(1, weight=1)
+        middle_frame.rowconfigure(0, weight=1)
 
         bottom_frame = tk.Frame(self.root)
-        bottom_frame.pack(padx=10, pady=10, fill=tk.X)
+        bottom_frame.grid(row=2, column=0, padx=10, pady=(5, 10), sticky="ew")
+        bottom_frame.columnconfigure(1, weight=1)
 
-        label1 = tk.Label(top_frame, text="Текст 1:")
-        label1.pack(side=tk.LEFT, padx=5)
+        # --- Widgets for Text 1 ---
+        label1 = tk.Label(top_frame, text="Текст 1:") # UI String
+        label1.grid(row=0, column=0, padx=(0, 5), sticky="w")
         self.load_button1 = tk.Button(
-            top_frame, text="Завантажити файл 1", command=self.load_file1
+            top_frame, text="Завантажити файл 1", command=self.load_file1 # UI String
         )
-        self.load_button1.pack(side=tk.LEFT)
+        self.load_button1.grid(row=0, column=1, padx=5)
+        self.clear_button1 = tk.Button(
+            top_frame, text="Очистити 1", command=lambda: clear_text_area(self.text_area1) # UI String
+        )
+        self.clear_button1.grid(row=0, column=2, padx=(5, 20)) # Adjusted padding slightly
+        self.text_area1 = scrolledtext.ScrolledText(middle_frame, wrap=tk.WORD, height=10, width=40)
+        self.text_area1.grid(row=0, column=0, padx=(0, 5), pady=5, sticky="nsew")
 
-        self.text_area1 = scrolledtext.ScrolledText(middle_frame, wrap=tk.WORD, height=10)
-        self.text_area1.pack(side=tk.LEFT, padx=5, fill=tk.BOTH, expand=True)
-
-        label2 = tk.Label(top_frame, text="Текст 2:")
-        label2.pack(side=tk.LEFT, padx=5, pady=5)
+        # --- Widgets for Text 2 ---
+        label2 = tk.Label(top_frame, text="Текст 2:") # UI String
+        label2.grid(row=1, column=0, padx=(0, 5), pady=(5,0), sticky="w")
         self.load_button2 = tk.Button(
-            top_frame, text="Завантажити файл 2", command=self.load_file2
+            top_frame, text="Завантажити файл 2", command=self.load_file2 # UI String
         )
-        self.load_button2.pack(side=tk.LEFT, padx=(0, 5))
+        self.load_button2.grid(row=1, column=1, padx=5, pady=(5,0))
+        self.clear_button2 = tk.Button(
+            top_frame, text="Очистити 2", command=lambda: clear_text_area(self.text_area2) # UI String
+        )
+        self.clear_button2.grid(row=1, column=2, padx=(5, 20), pady=(5,0)) # Adjusted padding slightly
+        self.text_area2 = scrolledtext.ScrolledText(middle_frame, wrap=tk.WORD, height=10, width=40)
+        self.text_area2.grid(row=0, column=1, padx=(5, 0), pady=5, sticky="nsew")
 
-        self.text_area2 = scrolledtext.ScrolledText(middle_frame, wrap=tk.WORD, height=10)
-        self.text_area2.pack(side=tk.RIGHT, padx=5, fill=tk.BOTH, expand=True)
-
-
+        # --- Widgets for Analysis and Results ---
         self.analyze_button = tk.Button(
-            bottom_frame, text="Аналізувати на плагіат", command=self.analyze
+            bottom_frame, text="Аналізувати на плагіат", command=self.analyze # UI String
         )
-        self.analyze_button.pack(side=tk.LEFT, padx=5)
+        self.analyze_button.grid(row=0, column=0, padx=(0,10), pady=(0, 5), sticky="w") # Added bottom padding
 
-        self.result_label = tk.Label(bottom_frame, text="Результат аналізу:")
-        self.result_label.pack(side=tk.LEFT, padx=5)
+        self.result_label = tk.Label(bottom_frame, text="Результат аналізу:") # UI String
+        self.result_label.grid(row=1, column=0, sticky="nw", pady=(5,0)) # Anchor north-west
 
-        self.result_area = scrolledtext.ScrolledText(bottom_frame, wrap=tk.WORD, height=5, state=tk.DISABLED)
-        self.result_area.pack(pady=5, fill=tk.X, expand=True)
+        self.result_area = scrolledtext.ScrolledText(bottom_frame, wrap=tk.WORD, height=6, state=tk.DISABLED)
+        self.result_area.grid(row=1, column=1, sticky="ew", pady=(5,0))
 
 
     def load_file_to_textarea(self, textarea):
-        """Завантажує текст з файлу у вказане текстове поле."""
-        content = load_text_from_file() 
-        if content:
-            textarea.delete('1.0', tk.END)
-            textarea.insert('1.0', content)
+        """Loads text from a selected file into the specified text area."""
+        try:
+            content = load_text_from_file()
+            if content is not None:
+                textarea.config(state=tk.NORMAL)
+                textarea.delete('1.0', tk.END)
+                textarea.insert('1.0', content)
+        except Exception as e:
+             messagebox.showerror("Помилка читання файлу", f"Не вдалося прочитати файл:\n{e}") # UI String
+
 
     def load_file1(self):
-        """Обробник кнопки завантаження для Тексту 1."""
+        """Handler for the 'Load File 1' button."""
         self.load_file_to_textarea(self.text_area1)
 
     def load_file2(self):
-        """Обробник кнопки завантаження для Тексту 2."""
+        """Handler for the 'Load File 2' button."""
         self.load_file_to_textarea(self.text_area2)
 
+    def display_result(self, result_text):
+        """Displays the analysis result (as plain text) in the result_area."""
+        self.result_area.config(state=tk.NORMAL) # Enable writing
+        self.result_area.delete('1.0', tk.END)
+        self.result_area.insert('1.0', result_text) # Insert the raw text
+        self.result_area.config(state=tk.DISABLED) # Disable writing
+
     def analyze(self):
-        """Виконує аналіз плагіату для введених текстів."""
+        """Performs plagiarism analysis on the texts in the text areas."""
         text1 = self.text_area1.get('1.0', tk.END).strip()
         text2 = self.text_area2.get('1.0', tk.END).strip()
 
         if not text1 or not text2:
-            messagebox.showwarning("Немає даних", "Будь ласка, введіть або завантажте обидва тексти.")
+            messagebox.showwarning("Немає даних", "Будь ласка, введіть або завантажте обидва тексти.") # UI String
             return
 
-        self.analyze_button.config(state=tk.DISABLED, text="Аналіз...")
+        self.analyze_button.config(state=tk.DISABLED, text="Аналіз...") # UI String
+        self.display_result("Обробка запиту...") # UI String: "Processing request..."
         self.root.update_idletasks()
 
         try:
-
             result = perform_analysis(text1, text2)
+            self.display_result(result)
 
-            self.result_area.config(state=tk.NORMAL)
-            self.result_area.delete('1.0', tk.END)
-            self.result_area.insert('1.0', result)
-            self.result_area.config(state=tk.DISABLED)
-
+        except (LLMConnectionError, LLMResponseError) as e:
+            error_msg = f"Не вдалося виконати аналіз:\n{e}" # UI String
+            messagebox.showerror("Помилка LLM", error_msg) # UI String
+            self.display_result(f"Помилка: {e}")
+        except ValueError as e:
+            messagebox.showwarning("Невірні дані", str(e)) # UI String
+            self.display_result("")
         except Exception as e:
-            messagebox.showerror("Помилка аналізу", f"Сталася помилка: {e}")
-            self.result_area.config(state=tk.NORMAL)
-            self.result_area.delete('1.0', tk.END)
-            self.result_area.config(state=tk.DISABLED)
+            error_msg = f"Сталася неочікувана помилка: {e}" # UI String
+            messagebox.showerror("Неочікувана помилка", error_msg) # UI String
+            self.display_result(f"Неочікувана помилка: {e}")
+            print(f"Unexpected error during analysis: {e}")
         finally:
+            self.analyze_button.config(state=tk.NORMAL, text="Аналізувати на плагіат") # UI String
 
-            self.analyze_button.config(state=tk.NORMAL, text="Аналізувати на плагіат")
 
-
+# Keep the main block for potential separate testing of the GUI module
 if __name__ == '__main__':
-    print("Запуск GUI модуля для тестування...")
+    print("Running GUI module directly for testing...")
     root = tk.Tk()
     app = PlagiarismApp(root)
     root.mainloop()

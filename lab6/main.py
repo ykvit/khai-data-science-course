@@ -1,28 +1,27 @@
-# lab6/main.py
-# -*- coding: utf-8 -*-
 """
-Головний скрипт запуску додатку аналізу плагіату.
+Main entry point script for launching the plagiarism analysis application.
 """
 
 import tkinter as tk
-from src.gui import PlagiarismApp
-from src.config import load_api_key 
 import sys
+from src.gui import PlagiarismApp
+from src.config import load_api_key
 
 api_key = load_api_key()
 
+# Check if the API key was loaded successfully
 if not api_key:
-    print("ПОМИЛКА: GOOGLE_API_KEY не знайдено в .env або змінних середовища.", file=sys.stderr)
-    print("Будь ласка, створіть файл .env у директорії lab6/ за прикладом .env.example", file=sys.stderr)
-    # sys.exit(1) 
+    print("ERROR: GOOGLE_API_KEY not found in .env or environment variables.", file=sys.stderr)
+    print("Please create a .env file in the lab6/ directory based on .env.example", file=sys.stderr)
 
 def main():
     """
-    Основна функція для запуску програми.
+    Initializes and runs the Tkinter application.
     """
     root = tk.Tk()
     app = PlagiarismApp(root)
     root.mainloop()
 
+# Standard Python entry point check
 if __name__ == "__main__":
     main()
