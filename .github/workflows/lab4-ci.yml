@@ -4,15 +4,8 @@ on:
   push:
     branches: [ "feature/04-student-perf-modernization" ] 
     paths: 
-      - 'lab4/**'         
-      - 'docker-compose.yml' 
-      - '.github/workflows/lab4-ci.yml' 
-  pull_request:
-    branches: [ "main" ] 
-    paths:
       - 'lab4/**'
-      - 'docker-compose.yml'
-      - '.github/workflows/lab4-ci.yml'
+      - '.github/workflows/lab4-ci.yml' 
 
 permissions:
   contents: read
