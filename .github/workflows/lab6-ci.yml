@@ -50,6 +50,8 @@ jobs:
         env:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         run: |
+          echo "Creating dummy .env file for Docker Compose..."
+          mkdir -p ./lab6
+          touch ./lab6/.env
           echo "Running tests within the container..."
-          # Передаємо змінну середовища GOOGLE_API_KEY в контейнер
           docker compose run --rm -e GOOGLE_API_KEY=$GOOGLE_API_KEY lab6 pytest tests/
