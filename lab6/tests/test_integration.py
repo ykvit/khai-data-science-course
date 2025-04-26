@@ -1,8 +1,35 @@
+"""
+Integration tests that may require external services (like LLM API).
+"""
+
 import pytest
 import os
-from src import llm_integration, analysis
+import google.generativeai as genai 
+from src import llm_integration, analysis, config, exceptions
 
-API_KEY_AVAILABLE = llm_integration.API_KEY is not None
+API_KEY_FROM_ENV = os.getenv("GOOGLE_API_KEY")
+API_KEY_AVAILABLE = bool(API_KEY_FROM_ENV) 
+
+@pytest.fixture(autouse=True, scope='module')
+def setup_llm_integration():
+    """
+    Fixture to explicitly configure the genai library and update the
+    llm_integration.API_KEY variable before integration tests run.
+    """
+    if API_KEY_AVAILABLE:
+        print(f"\nAttempting to configure GenAI for integration tests (Key: {API_KEY_FROM_ENV[:4]}...).")
+        try:
+            genai.configure(api_key=API_KEY_FROM_ENV)
+            llm_integration.API_KEY = API_KEY_FROM_ENV
+            print("GenAI configured successfully for tests.")
+        except Exception as e:
+            pytest.fail(f"CRITICAL: Failed to configure genai in fixture: {e}")
+    else:
+        print("\nWARNING: GOOGLE_API_KEY not found in environment. Integration tests will be skipped.")
+        llm_integration.API_KEY = None
+    yield
+
+# --- The tests remain almost the same, but now they use the configuration from the fixture ---
 
 @pytest.mark.skipif(not API_KEY_AVAILABLE, reason="GOOGLE_API_KEY not set, skipping integration test")
 def test_gemini_api_call_different_texts():
@@ -12,10 +39,11 @@ def test_gemini_api_call_different_texts():
     try:
         result = llm_integration.check_plagiarism_with_gemini(text1, text2)
         assert isinstance(result, str)
-        assert len(result) > 10 
+        assert len(result) > 10
         assert "схожість" in result.lower() or "similarity" in result.lower()
-    except (llm_integration.LLMConnectionError, llm_integration.LLMResponseError) as e:
-        pytest.fail(f"LLM API call failed: {e}")
+    except (exceptions.LLMConnectionError, exceptions.LLMResponseError) as e:
+        pytest.fail(f"LLM API call failed unexpectedly during test: {e}")
+
 
 @pytest.mark.skipif(not API_KEY_AVAILABLE, reason="GOOGLE_API_KEY not set, skipping integration test")
 def test_analysis_integration_similar_texts():
@@ -26,5 +54,5 @@ def test_analysis_integration_similar_texts():
         result = analysis.perform_analysis(text1, text2)
         assert isinstance(result, str)
         assert "схожість" in result.lower() or "similarity" in result.lower()
-    except (llm_integration.LLMConnectionError, llm_integration.LLMResponseError) as e:
-        pytest.fail(f"Analysis with LLM call failed: {e}")
+    except (exceptions.LLMConnectionError, exceptions.LLMResponseError) as e:
+        pytest.fail(f"Analysis with LLM call failed unexpectedly during test: {e}")
