@@ -31,3 +31,4 @@ services:
       - ./lab3/data:/app/data     # Maps data input
       - ./lab3/output:/app/output # Maps output folder
     command: python main.py
+
