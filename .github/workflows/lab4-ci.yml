@@ -1,0 +1,25 @@
+name: Lab 4 CI
+
+on:
+  push:
+    branches: [ "feature/04-student-perf-modernization" ] 
+    paths: 
+      - 'lab4/**'
+      - '.github/workflows/lab4-ci.yml' 
+
+permissions:
+  contents: read
+
+jobs:
+  test-lab4: 
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Compose
+      uses: docker/setup-buildx-action@v3 
+
+    - name: Run Lab 4 tests with Docker Compose
+      run: docker compose run --rm lab4 pytest

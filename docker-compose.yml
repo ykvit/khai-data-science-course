@@ -6,8 +6,8 @@ services:
     working_dir: /app
     volumes:
       - ./lab1:/app
-    stdin_open: true       # Keeps the terminal interactive
-    tty: true              # Prevents the container from closing
+    stdin_open: true
+    tty: true
     command: python main.py
 
   lab2:
@@ -16,9 +16,9 @@ services:
     container_name: lab2
     working_dir: /app
     volumes:
-      - ./lab2:/app               # Maps entire lab2 folder
-      - ./lab2/data:/app/data     # Maps data input
-      - ./lab2/output:/app/output # Maps output folder
+      - ./lab2:/app
+      - ./lab2/data:/app/data
+      - ./lab2/output:/app/output
     command: python main.py
 
   lab3:
@@ -27,9 +27,36 @@ services:
     container_name: lab3
     working_dir: /app
     volumes:
-      - ./lab3:/app               # Maps entire lab3 folder
-      - ./lab3/data:/app/data     # Maps data input
-      - ./lab3/output:/app/output # Maps output folder
+      - ./lab3:/app
+      - ./lab3/data:/app/data
+      - ./lab3/output:/app/output
+    command: python main.py
+
+  lab4:
+    build:
+      context: ./lab4
+    container_name: lab4
+    working_dir: /app
+    volumes:
+      - ./lab4:/app  
+      - ./lab4/data:/app/data 
+      - ./lab4/output:/app/output
+    stdin_open: true
+    tty: true
+    command: python main.py
+
+  lab5:
+    build:
+      context: ./lab5
+    container_name: lab5
+    working_dir: /app
+    environment: 
+      - DISPLAY=$DISPLAY
+    volumes:
+      - ./lab5:/app
+      - ./lab5/data:/app/data 
+      - ./lab5/output:/app/output 
+      - /tmp/.X11-unix:/tmp/.X11-unix 
     command: python main.py
 
 
